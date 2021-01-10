@@ -1,0 +1,10 @@
+*.~lock*
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.pdf
+*.png
+*.jpeg
+*.jpg
+*.swp
