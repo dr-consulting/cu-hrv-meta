@@ -39,7 +39,7 @@ calculate_d <- function(m1, m2, sd1, sd2, n1, n2, correct = FALSE, return_var = 
     d <- mean_diff / s_within
     d_var <- (n1 + n2) / (n1 * n2) + d^2/(2 * (n1 + n2))
     
-    # Apply Hedge's g 
+    # Apply Hedge's g correction and return estimate or its variance
     if(correct) {
         correction_factor <- 1 - 3 / (4 * df - 1)
         g <- d * correction_factor
