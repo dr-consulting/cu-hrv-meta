@@ -1,6 +1,9 @@
 # top-level file that should be executed by most compute scripts
 ROOT_DIR <- "~/github/BASE_lab/cu-hrv-meta" 
 
+# URL for most up-to-date inputs file
+GSHEET_URL <- "https://docs.google.com/spreadsheets/d/15ekVKHpztq-IfvOBC4HM1IWdEllHpYTY/edit#gid=120090311"
+
 # bringing local utility functions
 source(paste0(ROOT_DIR, '/R/utils.R'))
 

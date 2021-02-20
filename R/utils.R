@@ -32,12 +32,12 @@
 calculate_d <- function(m1, m2, sd1, sd2, n1, n2, correct = FALSE, return_var = FALSE) {
     df <- n1 + n2 - 2
     mean_diff <- m1 - m2
-    s_wthn <- sqrt(
+    s_pooled <- sqrt(
         ((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / df
     )
     
-    d <- mean_diff / s_within
-    d_var <- (n1 + n2) / (n1 * n2) + d^2/(2 * (n1 + n2))
+    d <- mean_diff / s_pooled
+    d_var <- (n1 + n2) / (n1 * n2) + d^2 / (2 * (n1 + n2)) 
     
     # Apply Hedge's g correction and return estimate or its variance
     if(correct) {
@@ -45,7 +45,7 @@ calculate_d <- function(m1, m2, sd1, sd2, n1, n2, correct = FALSE, return_var = 
         g <- d * correction_factor
         message("Correction factor applied, returning Hedge's g")
         if(return_var) {
-            g_var <- correct_factor^2 * d_var
+            g_var <- correction_factor^2 * d_var
             return(g_var)
         }
         else {
