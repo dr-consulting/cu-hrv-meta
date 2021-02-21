@@ -38,3 +38,48 @@ test_that("calculate_d returns correct Hedge's g variance for independent means"
     expected <- .04114347916
     expect_equal(res, expected)
 })
+
+
+test_that("r_to_z returns expected values", {
+    test_vals <- c(-.5, 0, .5)
+    expected_vals <- c(-0.5493061443, 0, 0.5493061443)
+    for(i in seq_along(test_vals)) {
+        res <- r_to_z(test_vals[i])
+        expect_equal(res, expected_vals[i])
+    }
+})
+
+
+test_that("r_to_z raises if correlation is outside valid boundaries", {
+    test_vals <- c(-1.2, 1.2)
+    for(r in test_vals) {
+        expect_error(
+            r_to_z(r), 
+            rregexp = "ERROR: invalid correlation metric"
+        ) 
+    }
+})
+
+
+test_that("z_to_r returns expected values", {
+    test_vals <- c(-0.5493061443, 0, 0.5493061443)
+    expected_vals <- c(-.5, 0, .5)
+    for(i in seq_along(test_vals)) {
+        res <- z_to_r(test_vals[i])
+        expect_equal(res, expected_vals[i])
+    }
+})
+
+
+test_that("d_to_r returns correct r value", {
+    res <- d_to_r(d=1.154700538, n1=40, n2=40)
+    expected <- .5
+    expect_equal(res, expected)
+})
+
+
+test_that("d_to_r returns correct r variance when requested value", {
+    res <- d_to_r(d=1.154700538, n1=40, n2=40, return_var = TRUE)
+    expected <- 0.006152344
+    expect_equal(res, expected)
+})

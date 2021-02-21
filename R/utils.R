@@ -1,31 +1,3 @@
-# Utility functions for repository
-
-#' Function for creating Python-like f-string notation throughout the repository. 
-#' 
-
-`f` <- function(x) {
-    require(glue)
-    initial_msg <- "Problem parsing input. Be sure you have provided a properly formatted string/character value"
-    glue_msg <- "f is a wrapper around the glue() package. The glue error is pasted below:"
-    out <- tryCatch(
-        {
-            as.character(glue::glue(x))
-        }, 
-        error = function(cond) {
-            message(initial_msg)
-            message(glue_msg)
-            message(cond)
-        }, 
-        warning = function(cond) {
-            message(initial_msg)
-            message(glue_msg)
-            message(cond)
-        }
-    )
-    
-    return(out)
-}
-
 #' Calculates standardized difference (d) between means of independent groups
 #' 
 
@@ -69,6 +41,12 @@ calculate_d <- function(m1, m2, sd1, sd2, n1, n2, correct = FALSE, return_var = 
 #' 
 
 r_to_z <- function(r) {
+    if(r < -1 | r > 1) {
+        stop(
+            paste0("ERROR: invalid correlation metric provided that is outside [-1, 1] boundaries")
+        )
+    }
+    
     .5 * log((1 + r) / (1 - r))
 }
 
@@ -87,10 +65,16 @@ z_var <- function(n) {
     1 / (n - 3)
 }
 
-#' Converts d to correlation scale
+#' Converts d or d variance to r or r variance 
 #' 
 
-d_to_r <- function(d, n1, n2) { 
+d_to_r <- function(d, n1, n2, return_var = FALSE) { 
     correction_factor <- (n1 + n2)^2 / (n1 * n2)
+    d_var <- (n1 + n2) / (n1 * n2) + d^2 / (2 * (n1 + n2)) 
+    if(return_var){ 
+        r_var <- (correction_factor^2 * d_var) / (d^2 + correction_factor)^3
+        return(r_var)
+    }
+    
     d / sqrt(d^2 + correction_factor)
 }
