@@ -1,4 +1,4 @@
-# Module that contains utilites for loading and cleaning data
+# Module that contains utilities for loading and cleaning data
 
 #' Function loads raw data from Googlesheets, and saves the file if file_name/dir_name provided
 #' 
