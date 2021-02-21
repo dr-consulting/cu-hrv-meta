@@ -18,17 +18,22 @@ load_and_save_gsheet <- function(url, file_path=NULL, return_df=TRUE) {
     gsheet_df <- googlesheets4::read_sheet(url)
     
     if(!is.null(file_path)) {
-         dir_name <- basename(dirname(file_path))
-         
-         if(!dir.exists(dir_name)) {
-             stop(
-                 paste0("ERROR: ", dir_name, " not a valid directory")
-             )
-         }
-         
-         else{
-             write.csv(gsheet_df, file = file_path, row.names = FALSE)
-         }
+        dir_name <- dirname(file_path)
+        
+        if(!dir.exists(dir_name)) {
+            stop(
+                paste0("ERROR: ", dir_name, " not a valid directory")
+            )
+        }
+
+        if(!tools::file_ext(file_path) == "csv") {
+            stop(
+                "ERROR: only .csv files currently supported in local write operations"
+            )
+        }
+        else{
+            write.csv(gsheet_df, file = file_path, row.names = FALSE)
+        }
     }
     
     if(return_df) {
