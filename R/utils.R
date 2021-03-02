@@ -41,13 +41,17 @@ calculate_d <- function(m1, m2, sd1, sd2, n1, n2, correct = FALSE, return_var = 
 #' 
 
 r_to_z <- function(r) {
-    if(r < -1 | r > 1) {
+    if(is.na(r)) {
+        return(NA)
+    }
+    
+    else if(r < -1 | r > 1) {
         stop(
             paste0("ERROR: invalid correlation metric provided that is outside [-1, 1] boundaries")
         )
     }
     
-    .5 * log((1 + r) / (1 - r))
+    return(.5 * log((1 + r) / (1 - r)))
 }
 
 #' Coverts Fisher's z-scaled correlation back to r
@@ -77,4 +81,12 @@ d_to_r <- function(d, n1, n2, return_var = FALSE) {
     }
     
     d / sqrt(d^2 + correction_factor)
+}
+
+
+#' Calculates r variance 
+#' 
+
+r_var <- function(r, n) {
+    (1-r^2)^2 / (n - 1)
 }

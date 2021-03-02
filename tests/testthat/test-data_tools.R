@@ -8,7 +8,7 @@ skip_if_no_token <- function() {
 
 mock_gs_url <- "https://docs.google.com/spreadsheets/d/1uL-Oci8vavg07lfAqapcPZhS5NmRh5rhIn36wrldjY0/edit#gid=0"
 
-test_that("load_and_save_gsheet returns expected data.frame", {
+test_that("load_and_save_gsheet returns expected data.frame and drops NA by default", {
     skip_if_offline()
     skip_if_no_token()
     
@@ -16,7 +16,8 @@ test_that("load_and_save_gsheet returns expected data.frame", {
         State = c("PA", "NV"), 
         Capital = c("Harrisburg", "Carson City"), 
         Population = c(12800900, 3027340), 
-        Population_string = c("12,800,900", "3,027,340")
+        Population_string = c("12,800,900", "3,027,340"), 
+        missing = c("not missing", NA)
     )
     
     res <- load_and_save_gsheet(
@@ -101,7 +102,8 @@ test_that("load_and_save_gsheet writes csv to path and retrieved csv contains ex
         State = c("PA", "NV"), 
         Capital = c("Harrisburg", "Carson City"), 
         Population = c(12800900, 3027340), 
-        Population_string = c("12,800,900", "3,027,340")
+        Population_string = c("12,800,900", "3,027,340"), 
+        missing = c("not missing", NA)
     )
     
     load_and_save_gsheet(
