@@ -8,3 +8,5 @@
 *.jpeg
 *.jpg
 *.swp
+.Rproj.user
+.Rhistory
