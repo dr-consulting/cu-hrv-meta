@@ -1,0 +1,278 @@
+---
+title: "CU Physio Meta-Analysis Workflow Template"
+author: "Matthew Barstead, Ph.D."
+date: "3/3/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(gargle_oauth_email = "mbarstead@deadreckoning.consulting")
+#' Simple function for creating a negation 'in' function in R
+#' 
+`%notin%` <- Negate(`%in%`)
+```
+
+# Setup 
+## Installing Stan
+Part of the modeling step relies on Stan, an open-source Bayesian software package. [Be sure to follow the installation](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started) recommendations for your operating system (Windows, Mac, and Linux options are available). 
+
+Make sure you follow the steps appropriate for your system and be sure [_not to skip the configuration of your C++ Toolchain_ ](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#configuring-c-toolchain). Note that ther are a couple of common errors that can happen with certain systems. 
+
+## Required R Packages
+If you are are already an enthusiastic R user, yay! You'll probably have many of the packages needed. If you are a begrudging R user, no worries - I get it. Hopefully we can make the installation process as painless as possible. 
+
+To install any missing packages that are used as part of this workflow run the following code: 
+```{r install_r_pkgs}
+pkgs <- c("devtools", "brms", "tidyverse", "tidybayes", "googlesheets4", "testthat", "cowplot")
+
+# loop over the packages and install if not present
+for(pkg in pkgs) {
+    if(pkg %notin% installed.packages()[,"Package"]) install.packages(pkg)
+}
+
+# We are also going to bring in an open source package with some helpful plotting tools for meta-analyses using brms
+if(!require("brmstools")) devtools::install_github("mvuorre/brmstools")
+```
+
+Now we can load those packages in along with some custom functions built specifically for this project. The `here` package and its `here()` function are just ways to make this notebook executable regardless of where you save and open this project up. 
+
+```{r, load_tools, echo=FALSE}
+library(tidyverse)
+library(brms)
+library(brmstools)
+R_DIR <- paste0(here::here(), "/R")
+sapply(list.files(R_DIR, full.names = TRUE), source)
+```
+
+# Data Load
+One of the custom functions for this project wraps around the `googlesheets4` library. The main upside is that it let's users pull the most up to date data available when they want to run a new analysis. When you run the cell below the `tidyverse` API will ask you about 
+
+```{r data_load, message=TRUE}
+url <- "https://docs.google.com/spreadsheets/d/17-ORYryysIIL5eUjXUvrNHx2tKX5ByhasOrhw6JDpaY/edit#gid=0"
+raw_df <- load_and_save_gsheet(url)
+```
+
+If everything works as expected, the function should read in and the sheet in its current state. Here is a good place to introduce the concept of defensive programming. The idea behind defensive programming is that you assert certain things are true after you have executed some command or set of commands. For instance, in the example below, I want to test the dimensionality of the returned data. Partly because I want to be aware, before this entire notebook runs, if new studies have been added or if certain, potentially relevant variables were dropped. 
+
+```{r defense}
+testthat::expect_is(raw_df, "data.frame")
+testthat::expect_equal(dim(raw_df), c(119, 43))
+```
+
+Try playing with one of the numbers in the second command to see what happens when you try to run knit the file. 
+
+# Data Wrangling
+
+Now it is time to start cleaning and transforming the data into the final sets of effects. At this point every effect of interest should be either a set of mean differences or a correlation. Our goal is to move every effect over to a correlation scale using several custom functions that should load when you execute your way through this template workflow. 
+
+## Correlation Effects and Their Variances
+In the code below I introduce the `%>%` operator (called a "pipe"). It allows us to pass the outputs of one function in as the inputs of the next function without having to save an intermediate steps. In the code below I am going to use `mutate()` a powerful and often used function from the `dplyr` package to modify (ahem, "mutate" - see what they did there) the original data frame `raw_df` by adding two columns. One is a straight copy with a more intuitive name, the other is the calculation of the standard error for the associated effects in that column. 
+
+We can spot check that the copying works more or less as expected. 
+```{r correlations}
+full_df <- raw_df %>% 
+    mutate(
+        correlation_vals = r_cuXoutcome, 
+        correlation_se = r_var(correlation_vals, N) %>% 
+            sqrt()
+    )
+
+full_df %>% 
+    select(citation, N, r_cuXoutcome, correlation_vals, correlation_se) %>% 
+    head()
+```
+
+Okay... let's see if every correlation has a standard error. We are going to need both for the meta-analysis models. Here we'll use the filter function to select rows based on whether our target columns of interest are `NA` or have valid values. (The `!` is negation here so read as "is not")
+
+```{r missing_SE}
+full_df %>% 
+    select(citation, N, r_cuXoutcome, correlation_vals, correlation_se) %>% 
+    filter(!is.na(correlation_vals) & is.na(correlation_se))
+```
+
+If there are any rows printed out suggests we likely need to track down the relevant `N` entry that is missing. No rows means that all of our correlations have a standard error term (yay!). 
+
+## Standardized Mean Differences
+Next up is the creation of standardized difference scores. We'll rely on Cohen's $d$ for this step. Once we get the effect and variance on a $d$ scale we'll convert them to $r$'s and then combine all values into set of effects and a set of their standard errors. The nice thing about these functions is that they should return `NA` whenever a required value is missing in the data. 
+
+```{r cohens_d}
+full_df <- full_df %>% 
+    mutate(
+        cohens_d = calculate_d(m1=Cugrp_outcome_mean, sd1=Cugrp_outcome_SD, n1=N_CUgrp, 
+                               m2=ctrl_outcome_mean, sd2=ctrl_outcome_SD, n2=N_CTRLgrp), 
+        # Creating my combined effect here - will add in r's later to same column
+        eff = d_to_r(cohens_d, n1=N_CUgrp, n2=N_CTRLgrp), 
+        eff_se = d_to_r(cohens_d, n1=N_CUgrp, n2=N_CTRLgrp, return_var = TRUE) %>% 
+            sqrt()
+    )
+
+full_df %>% 
+    select(citation, Cugrp_outcome_mean, ctrl_outcome_mean, cohens_d, eff, eff_se) %>% 
+    head()
+```
+
+Some spot checking and if we see that the CU group mean is lower than the control mean we would expect a negative Cohen's $d$, which seems to be what has played out here. 
+
+## Combining Effects 
+We are going to combine everything in the single `eff` and `eff_se` columns that we have calculated so far - giving priority to correlations over standardized mean differences that have been converted to correlations. We do this in a way that alos preserves any missing values - which need to be fully investigated before any final models are generated. 
+
+```{r combining}
+full_df[["eff"]] <- ifelse(!is.na(full_df[["correlation_vals"]]), full_df[["correlation_vals"]], full_df[["eff"]])
+full_df[["eff_se"]] <- ifelse(!is.na(full_df[["correlation_se"]]), full_df[["correlation_se"]], full_df[["eff_se"]])
+full_df %>% 
+    select(citation, correlation_vals, cohens_d, eff, eff_se) %>% 
+    head(10)
+```
+
+At this point, we should look into any rows that do not have an effect and attempt to figure out why. 
+```{r id_missing}
+full_df %>% 
+    filter(is.na(eff)) %>% 
+    select(citation, correlation_vals, cohens_d, eff, eff_se)
+```
+
+This section in particular should be a useful starting point for tracking down issues with data entry and missing values. 
+
+## Building a Baseline Model
+Assuming all of the outstanding data issues have been addressed, we can move on to the modeling phase. Arguably the most fun, oftentimes the least important (the data cleaning and prep and detective work is always the most important). 
+
+We'll be using the `brms` package - and handy API wrapper around Stan that let's us, with minimal synatic complexity, specify Bayesian multilevel models. There are nice simple walkthroughs of the meta-analysis use case for the package [here](https://vuorre.netlify.app/post/2017/01/19/better-forest-plots-from-meta-analytic-models-estimated-with-brms/) and [here](https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/bayesian-meta-analysis-in-r-using-the-brms-package.html). 
+
+The formula follows the basic structure: `effect size | effect standard error ~ intercept + ... (intercept | study label)` with the `...` indicating space for additional predictors. For now we just have an intercept and the inclustion of our study id as a clustering unit. This framework naturally lends itself to the inclusion of all effects from a single study by creating a "study-level" effect or random effect for the model intercept.
+
+I am setting weakly informative priors on the intercept and variance terms - since we know that the values of correlations cannot exceed $\pm$ 1.
+
+```{r basic_bayes}
+# This name is currently horribly formatted in the googlesheet - may want to change altogether
+full_df[["baseline_status"]] <- full_df[["Baseline = 0; Task = 1; Reactivity = 2"]]
+base_model <- "eff | se(eff_se) ~ 1 + (1|citation)" %>% brmsformula()
+
+base_priors <- c(
+    prior(normal(0, 1), class = Intercept), 
+    prior(lognormal(0, .3), class = sd)
+)
+
+# Here we are filtering based just on baseline effects and only for PNS physio measures 
+model_PNS_baseline <- brm(
+    base_model, 
+    prior = base_priors, 
+    data = full_df %>% 
+        filter(baseline_status == 0 & Outcome_system == "PNS"), 
+    iter = 4000,
+    warmup = 2500, 
+    cores = 3, 
+    chains = 3, 
+    control = list(adapt_delta = .99, max_treedepth=15), 
+    refresh = 0 # prevents progress print out in the markdown file
+)
+```
+
+### Inspecting Results
+First we want to check our posterior distributions. Goal is to assess some basic model fit. The resulting plot is decent. The main posterior predicted density is right about where we observe most of our effects. 
+
+```{r ppcheck}
+pp_check(model_PNS_baseline)
+```
+
+How about parameter convergence? 
+
+```{r traceplot}
+plot(model_PNS_baseline, pars = c("b_Intercept", "sd_citation__Intercept"))
+```
+
+A more or less normally distributed intercept and a positively skewed variance term - both in line with basic distributional expectations and the convergence of the traceplots appears adequate. 
+
+### Interpreting Results
+
+First let's start with the visual summary - this is where the `brmstools` package comes into play. We can create a ggplot object that displays our results. We'll also save it so we can combine and write it to a local directory on our computers at the end. 
+
+```{r forest1}
+PNS_baseline_forest <- forest(model_PNS_baseline) + 
+    ggtitle("CU Traits Correlations with Baseline PNS") +
+    geom_vline(xintercept = 0, lty="dashed") + 
+    theme_bw() + 
+    labs(x="Correlation")
+
+PNS_baseline_forest
+```
+
+We can get the full model output printed here as well:
+```{r model_summary}
+summary(model_PNS_baseline) %>% 
+    print(digits = 4)
+```
+
+Here we see that the `Intercept` is our main effect of interest. It represents the estimated population average, integrating across all available effects. 
+
+We can run the same model for `ANS` and `SNS` subsets of the data: 
+
+```{r}
+# First the ANS effects
+model_ANS_baseline <- brm(
+    base_model, 
+    prior = base_priors, 
+    data = full_df %>% 
+        filter(baseline_status == 0 & Outcome_system == "ANS"), 
+    iter = 4000,
+    warmup = 2500, 
+    cores = 3, 
+    chains = 3, 
+    control = list(adapt_delta = .99, max_treedepth=15), 
+    refresh = 0 # prevents progress print out in the markdown file
+)
+
+ANS_baseline_forest <- forest(model_ANS_baseline) + 
+    ggtitle("CU Traits Correlations with Baseline ANS") +
+    geom_vline(xintercept = 0, lty="dashed") + 
+    theme_bw() + 
+    labs(x="Correlation")
+
+# Then the SNS effects
+model_SNS_baseline <- brm(
+    base_model, 
+    prior = base_priors, 
+    data = full_df %>% 
+        filter(baseline_status == 0 & Outcome_system == "SNS"), 
+    iter = 4000,
+    warmup = 2500, 
+    cores = 3, 
+    chains = 3, 
+    control = list(adapt_delta = .99, max_treedepth=15), 
+    refresh = 0 # prevents progress print out in the markdown file
+)
+
+SNS_baseline_forest <- forest(model_SNS_baseline) + 
+    ggtitle("CU Traits Correlations with Baseline SNS") +
+    geom_vline(xintercept = 0, lty="dashed") + 
+    theme_bw() + 
+    labs(x="Correlation")
+```
+
+### Combined Models in a Single Plot and Save
+I really like the `cowplot` package for simple combinations of plots. Here is one example. Notice that I set the x axes to be equal and I modify the relative height to address the difference in the effect sizes per model. 
+
+```{r final_plot, fig.height=10}
+comb_plot <- cowplot::plot_grid(
+    ANS_baseline_forest + scale_x_continuous(limits = c(-.6, .6)), 
+    PNS_baseline_forest + scale_x_continuous(limits = c(-.6, .6)), 
+    SNS_baseline_forest + scale_x_continuous(limits = c(-.6, .6)), 
+    ncol=1, 
+    rel_heights = c(1.5, 1, 1)
+)
+
+# Save the file (in this case to my desktop)
+ggsave(comb_plot, 
+       filename = "~/Desktop/example_combined_plot.png", 
+       device = "png", 
+       units = "in", 
+       width = 11, 
+       height = 8.5, 
+       dpi = 600)
+
+# and then print out the plot
+comb_plot
+```
+
