@@ -90,3 +90,24 @@ d_to_r <- function(d, n1, n2, return_var = FALSE) {
 r_var <- function(r, n) {
     (1-r^2)^2 / (n - 1)
 }
+
+
+#' Estimates a HR standard deviation given mean and sd in HP units 
+#' 
+#' The summary stats used for the conversion must be positive (which should be the case for heart period metrics)
+#' 
+#' Base formula courtesy of: https://math.stackexchange.com/a/269261
+
+estimate_hr_mean_sd <- function(hp_mean, hp_sd, hp_denom=1) {
+    # This works under the assumption that x distribution is positively distributed
+    # Returns in a beats per second metric - which simplifies the conversion formula slightly
+    # For the purposes of this report that should be fine as we are interested in standardized effects in the end
+    hp_mean <- hp_mean / hp_denom
+    hp_var <- (hp_sd / hp_denom)^2
+    
+    hr_mean <- 1 / hp_mean + hp_var / hp_mean^3
+    hr_var <- hp_var / hp_mean^4
+    
+    list(hr_bps_mean = hr_mean, 
+         hr_bps_sd = sqrt(hr_var))
+}
