@@ -13,7 +13,7 @@
 #' Googlesheet is downloaded, but nothing will be saved
 #' 
 #' @param return_df if TRUE (default) the loaded Googlesheet is returned to the user as data.frame in their R session.
-
+#' 
 load_and_save_gsheet <- function(url, missing_val="NA", file_path=NULL, return_df=TRUE) {
     gsheet_df <- googlesheets4::read_sheet(url, na=missing_val)
     
@@ -40,4 +40,3 @@ load_and_save_gsheet <- function(url, missing_val="NA", file_path=NULL, return_d
         return(gsheet_df)
     }
 }
-
