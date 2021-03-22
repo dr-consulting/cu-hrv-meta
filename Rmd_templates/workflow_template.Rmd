@@ -41,6 +41,8 @@ if(!require("brmstools")) devtools::install_github("mvuorre/brmstools")
 
 Once you have installed the packages above, run the code in the block below in an interactive `R` Console. This is best if done inside RStudio. This code is not evaluated as part of the execution of this `.Rmd` document. You'll need to copy and paste it in the console. 
 
+Alternatively, you can "press play" inside the `.Rmd` file on the cell below before attempting to knit a report. 
+
 ```{r, eval=FALSE}
 googledrive::drive_auth(email = "your@email.com")
 ```
@@ -159,7 +161,8 @@ full_df[["baseline_status"]] <- full_df[["Baseline = 0; Task = 1; Reactivity = 2
 base_model <- "eff | se(eff_se) ~ 1 + (1|citation)" %>% brmsformula()
 
 base_priors <- c(
-    prior(normal(0, 1), class = Intercept), 
+    # Flat prior restricted to 1, -1 for correlation scale
+    prior(normal(0, .5), class = Intercept), 
     prior(lognormal(0, .3), class = sd)
 )
 
@@ -198,11 +201,13 @@ A more or less normally distributed intercept and a positively skewed variance t
 First let's start with the visual summary - this is where the `brmstools` package comes into play. We can create a ggplot object that displays our results. We'll also save it so we can combine and write it to a local directory on our computers at the end. 
 
 ```{r forest1}
-PNS_baseline_forest <- forest(model_PNS_baseline) + 
-    ggtitle("CU Traits Correlations with Baseline PNS") +
-    geom_vline(xintercept = 0, lty="dashed") + 
-    theme_bw() + 
-    labs(x="Correlation")
+PNS_baseline_forest <- plot_bayes_forest(
+    model_PNS_baseline, 
+    'citation', 
+    title='PNS Baseline Model', 
+    xlab='Standardized Effect', 
+    ylab='Authors'
+)
 
 PNS_baseline_forest
 ```
@@ -232,11 +237,13 @@ model_ANS_baseline <- brm(
     refresh = 0 # prevents progress print out in the markdown file
 )
 
-ANS_baseline_forest <- forest(model_ANS_baseline) + 
-    ggtitle("CU Traits Correlations with Baseline ANS") +
-    geom_vline(xintercept = 0, lty="dashed") + 
-    theme_bw() + 
-    labs(x="Correlation")
+ANS_baseline_forest <- plot_bayes_forest(
+    model_PNS_baseline, 
+    'citation', 
+    title='PNS Baseline Model', 
+    xlab='Standardized Effect', 
+    ylab='Authors'
+)
 
 # Then the SNS effects
 model_SNS_baseline <- brm(
@@ -252,11 +259,13 @@ model_SNS_baseline <- brm(
     refresh = 0 # prevents progress print out in the markdown file
 )
 
-SNS_baseline_forest <- forest(model_SNS_baseline) + 
-    ggtitle("CU Traits Correlations with Baseline SNS") +
-    geom_vline(xintercept = 0, lty="dashed") + 
-    theme_bw() + 
-    labs(x="Correlation")
+SNS_baseline_forest <- plot_bayes_forest(
+    model_PNS_baseline, 
+    'citation', 
+    title='PNS Baseline Model', 
+    xlab='Standardized Effect', 
+    ylab='Authors'
+)
 ```
 
 ### Combined Models in a Single Plot and Save
