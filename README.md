@@ -24,19 +24,20 @@ With both macOS and Linux systems, it is easy to use git directly in the termina
 
 ## Running the Code 
 
-Depending where you clone things on your local machine, you may need to temporarily change the `ROOT_DIR <- ... ` line in the `project_config.R` file at the top-level of the project. 
+The easiest way of interacting with the code base is to open the project file in the cloned repo inside RStudio. Simple go to File --> Open Project in New Session... and select the file `cu-hrv-meta.Rproj`. If you have recently opened the project, you should be able to open it from the drop down menu located in the top right of the RStudio toolbar. 
+
+![Figure 1. Opening recent projects](./img/open_project.png)
 
 ## Opening Pull Requests
 
-The repository follows a feature-branch pattern for [incorporating changes](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow). To open a pull request using this pattern, follow the steps below. The steps below assume you are using the command line via a standard terminal (macOS or Linux) or in a git BASH terminal (Windows). The same procedures can be used inside the GitHub desktop GUI. 
+The repository follows a feature-branch pattern for [incorporating changes](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow). To open a pull request using this pattern, follow the steps below. The steps below assume you are using the command line via a standard terminal (macOS or Linux) or in a git BASH terminal (Windows). The same procedures can be used inside the [GitHub desktop GUI](https://www.softwaretestinghelp.com/github-desktop-tutorial/). Additionally, Rstudio is [offers Git](https://support.rstudio.com/hc/en-us/articles/200532077-Version-Control-with-Git-and-SVN) integration which will cover better than 95% of what will be needed to work with this repo.
 
-If you haven't already, run (be sure you are in the folder you want to be): 
+Of course to make changes to the repo you'll need to clone a local copy. Be sure you are in the folder you want to be. The example below uses the terminal command `cd` to change directories before cloning the repo. Change `~` to the parent directory you want to clone into. 
 
 ```
-cd ~  # assumes you want to be in the "home" directory 
+cd ~  # assumes you want the repo to be saved in your system's "home" directory 
 git clone https://github.com/dr-consulting/cu-hrv-meta.git
 ```
-
 
 1. Check out the main branch. 
 
@@ -64,7 +65,8 @@ git checkout -b my-feature-branch-name
 git add * 
 ```
 
-The above should add any file types that are not explicitly ignored in the `.gitignore` file. Run `git status` if you are concerned that you may have added a file that you did not mean to. In general, files that exceed 50 MB should not be checked into the remote repository. 
+The above should add any file types that are not explicitly ignored in the `.gitignore` file. If you find that a file isn't showing up though it may because that filetype is excluded from version tracking in the `.gitignore` file, usually to ensure that very large filetypes don't get accidentally added to the repository. 
+Run `git status` if you are concerned that you may have added a file that you did not mean to. In general, files that exceed 50 MB should not be checked into the remote repository. 
 
 6. Commit your changes and push them up to the remote. 
 
@@ -80,6 +82,12 @@ Commit messages should be short explanations of what has changed in the files yo
 git push -u origin my-feature-branch-name
 ```
 
-If the branch already exists, you can omit the `-u origin my-feature-branch-name` part.
+If the branch already exists, you can omit the `-u origin my-feature-branch-name` part. That is only needed the first time pushing a brand new branch up to the remote repository.
 
 8.  Once pushed up to the remote repository, you'll need to log in to GitHub and use the website UI to open a pull request targeting the `main` branch. Give the PR a title and add a brief comment that provides context on the nature of the proposed changes. Tag @dr-consulting for review. 
+
+## Working with GoogleSheets
+
+The `.Rmd` workflow template is just that a template. One useful feature of the template is that if you execute the code contained within, you will have effectively cleaned and transformed your data, and loaded all custom functions needed to work on variants of the base models. 
+
+Additionally, in order to knit the document into an html or pdf report, you'll need to authenticate your credentials to ensure you are permitted access to the most up-to-date version of the raw data. Instructions for doing so are provided in the template itself. 
