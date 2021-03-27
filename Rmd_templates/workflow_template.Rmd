@@ -166,14 +166,8 @@ full_df[["baseline_status"]] <- full_df[["Baseline = 0; Task = 1; Reactivity = 2
 base_model <- "eff | se(eff_se) ~ 1 + (1|citation)" %>% brmsformula()
 
 base_priors <- c(
-<<<<<<< HEAD
-    # Flat prior restricted to 1, -1 for correlation scale
-    prior(normal(0, .5), class = Intercept), 
-    prior(lognormal(0, .3), class = sd)
-=======
     prior(normal(0, .75), class = Intercept), 
     prior(cauchy(0, .5), class = sd)
->>>>>>> main
 )
 
 # Here we are filtering based just on baseline effects and only for PNS physio measures 
