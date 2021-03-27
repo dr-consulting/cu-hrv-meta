@@ -1,5 +1,5 @@
 # top-level file that should be executed by most compute scripts
-ROOT_DIR <- "~/github/BASE_lab/cu-hrv-meta" 
+ROOT_DIR <- here::here()
 
 # URL for most up-to-date inputs file
 GSHEET_URL <- "https://docs.google.com/spreadsheets/d/15ekVKHpztq-IfvOBC4HM1IWdEllHpYTY/edit#gid=120090311"
