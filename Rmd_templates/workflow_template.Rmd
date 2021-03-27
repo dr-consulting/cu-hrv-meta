@@ -8,7 +8,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-options(gargle_oauth_email = "mbarstead@deadreckoning.consulting")
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 #' Simple function for creating a negation 'in' function in R
 #' 
@@ -49,10 +48,16 @@ googledrive::drive_auth(email = "your@email.com")
 
 Now we can load those packages in along with some custom functions built specifically for this project. The `here` package and its `here()` function are just ways to make this notebook executable regardless of where you save and open this project up. 
 
+**IMPORTANT**: As with the code above be sure to add your email address (the one that has shared access to the raw data) in the `options` line below. Afterwards the simplest way to ensure that you can knit this document into a report is to run all of the code - simply scroll down to the last code cell in the documnent and click the button shown in the image below: 
+
+![Figure 2. Running all chunks above](../img/run_all_chunks.png)
+
 ```{r load_tools, echo=FALSE}
 library(tidyverse)
 library(brms)
 library(brmstools)
+# Be sure to put your email in the slot below
+options(gargle_oauth_email = "mbarstead@deadreckoning.consulting")
 R_DIR <- paste0(here::here(), "/R")
 sapply(list.files(R_DIR, full.names = TRUE), source)
 ```
@@ -153,7 +158,7 @@ We'll be using the `brms` package - and handy API wrapper around Stan that let's
 
 The formula follows the basic structure: `effect size | effect standard error ~ intercept + ... (intercept | study label)` with the `...` indicating space for additional predictors. For now we just have an intercept and the inclustion of our study id as a clustering unit. This framework naturally lends itself to the inclusion of all effects from a single study by creating a "study-level" effect or random effect for the model intercept.
 
-I am setting weakly informative priors on the intercept and variance terms - since we know that the values of correlations cannot exceed $\pm$ 1.
+I am setting weakly informative priors on the intercept and variance terms - since we know that the values of correlations cannot exceed $\pm$ 1. For the intercept, which represents the pooled average across all studies in this initial model, we'll use a normal prior, with a standard deviation of .75. One way of thinking about this prior is that we expect at least 68% of the observed effects to return correlations between $r = -.75$ and $r = .75$. 
 
 ```{r basic_bayes}
 # This name is currently horribly formatted in the googlesheet - may want to change altogether
@@ -161,9 +166,14 @@ full_df[["baseline_status"]] <- full_df[["Baseline = 0; Task = 1; Reactivity = 2
 base_model <- "eff | se(eff_se) ~ 1 + (1|citation)" %>% brmsformula()
 
 base_priors <- c(
+<<<<<<< HEAD
     # Flat prior restricted to 1, -1 for correlation scale
     prior(normal(0, .5), class = Intercept), 
     prior(lognormal(0, .3), class = sd)
+=======
+    prior(normal(0, .75), class = Intercept), 
+    prior(cauchy(0, .5), class = sd)
+>>>>>>> main
 )
 
 # Here we are filtering based just on baseline effects and only for PNS physio measures 
